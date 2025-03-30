@@ -66,7 +66,7 @@ def simple_search(data: pd.DataFrame, query: str) -> Any:
 
         results = data[mask].copy()
 
-        # 💥 Преобразуем все Timestamp → str
+        # Преобразуем все Timestamp → str
         for col in results.columns:
             if pd.api.types.is_datetime64_any_dtype(results[col]):
                 results[col] = results[col].dt.strftime("%Y-%m-%d")
@@ -84,7 +84,7 @@ def phone_search(data: pd.DataFrame) -> Any:
         mask = data["Описание"].fillna("").apply(lambda text: bool(re.search(pattern, text)))
         results = data[mask].copy()
 
-        # 🔥 Преобразуем все datetime-столбцы в строки
+        # Преобразуем все datetime-столбцы в строки
         for col in results.columns:
             if pd.api.types.is_datetime64_any_dtype(results[col]):
                 results[col] = results[col].dt.strftime("%Y-%m-%d")
