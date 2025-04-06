@@ -13,7 +13,6 @@
 ├── data
 │   └── operations.xlsx             # Excel-файл с транзакциями
 ├── src
-│   ├── main.py                     # Точка входа для проверки функциональности
 │   ├── views.py                    # Генерация данных для веб-страниц
 │   ├── utils.py                    # Утилиты: загрузка и фильтрация данных
 │   ├── services.py                 # Сервисы: поиск, кешбэк, инвесткопилка
@@ -23,6 +22,7 @@
 │   ├── test_views.py               # Тесты модуля views
 │   ├── test_services.py            # Тесты модуля services
 │   └── test_reports.py             # Тесты модуля reports
+├── main.py                         # Точка входа для проверки функциональности
 ├── .env                            # Файл переменных окружения (ключи API)
 ├── pyproject.toml                  # Конфигурация проекта (Poetry)
 ├── poetry.lock                     # Зависимости проекта
@@ -37,10 +37,9 @@
 Для работы проекта необходим файл `.env`, расположенный в корне проекта, с переменными:
 
 ```env
-CURRENCY_API_KEY=your_currency_api_key
-CURRENCY_API_URL=https://api.currencyapi.com/v3/latest
+FINNHUB_API_KEY=your_currency_api_key
 ```
-
+https://finnhub.io/ - ссылка на API
 ---
 
 ## 🧠 Функциональность модулей

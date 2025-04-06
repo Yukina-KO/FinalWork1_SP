@@ -1,3 +1,4 @@
+import json
 import logging
 import math
 import re
@@ -6,32 +7,44 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
+from src.utils import format_search_results
+
 logger = logging.getLogger(__name__)
 
 
-def analyze_cashback_categories(data: pd.DataFrame, year: int, month: int) -> Any:
+def analyze_cashback_categories(data: list[dict[str, Any]], year: int, month: int) -> str:
+    """
+    Анализирует категории расходов за указанный месяц и возвращает кешбэк 1% по каждой категории в виде JSON-строки.
+    :param data: Список транзакций в виде словарей
+    :param year: Год анализа
+    :param month: Месяц анализа
+    :return: JSON-строка вида '{"Категория": сумма_кешбэка, ...}'
+    """
     try:
-        filtered = data[(data["Дата операции"].dt.year == year) & (data["Дата операции"].dt.month == month)]
+        df = pd.DataFrame(data)
+        df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%Y-%m-%d")
 
-        # Удаляем пустые значения
-        filtered = filtered.dropna(subset=["Категория", "Сумма платежа"])
+        filtered = df[
+            (df["Дата операции"].dt.year == year) & (df["Дата операции"].dt.month == month) & (df["Сумма платежа"] > 0)
+        ].dropna(subset=["Категория", "Сумма платежа"])
 
-        # Группировка по категориям и расчёт кешбэка
-        result = (
-            filtered.groupby("Категория")["Сумма платежа"]
-            .sum()
-            .apply(lambda x: round(x * 0.01, 2))  # 1% кешбэка
-            .to_dict()
-        )
+        result = filtered.groupby("Категория")["Сумма платежа"].sum().apply(lambda x: round(x * 0.01, 2)).to_dict()
 
-        return result
+        return json.dumps(result, ensure_ascii=False)
 
     except Exception as e:
         logger.error(f"Ошибка в analyze_cashback_categories: {e}")
-        return {}
+        return json.dumps({})
 
 
 def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) -> float:
+    """
+    Вычисляет сумму округлений до заданного лимита для пополнения инвесткопилки.
+    :param month: Месяц в формате "YYYY-MM"
+    :param transactions: Список транзакций (словарей)
+    :param limit: Лимит округления (например, 50)
+    :return: Общая сумма округлений
+    """
     try:
         total_saved = 0
         for tx in transactions:
@@ -57,39 +70,40 @@ def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) 
         return 0.0
 
 
-def simple_search(data: pd.DataFrame, query: str) -> Any:
+def simple_search(data: list[dict[str, Any]], query: str) -> str:
+    """
+    Выполняет простой поиск по категориям и описаниям транзакций.
+    Возвращает результат в виде JSON-строки.
+    :param data: Список транзакций в виде словарей
+    :param query: Поисковый запрос
+    :return: JSON-строка с результатами поиска
+    """
     try:
+        df = pd.DataFrame(data)
         query = query.lower()
-        mask = data["Категория"].fillna("").str.lower().str.contains(query) | data["Описание"].fillna(
+        mask = df["Категория"].fillna("").str.lower().str.contains(query) | df["Описание"].fillna(
             ""
         ).str.lower().str.contains(query)
-
-        results = data[mask].copy()
-
-        # Преобразуем все Timestamp → str
-        for col in results.columns:
-            if pd.api.types.is_datetime64_any_dtype(results[col]):
-                results[col] = results[col].dt.strftime("%Y-%m-%d")
-
-        return results.to_dict(orient="records")
+        return format_search_results(df, mask)
 
     except Exception as e:
         logger.error(f"Ошибка в simple_search: {e}")
-        return []
+        return json.dumps([])
 
 
-def phone_search(data: pd.DataFrame) -> Any:
+def phone_search(data: list[dict[str, Any]]) -> str:
+    """
+    Ищет телефоны в формате +7 XXX XXX-XX-XX в описаниях транзакций.
+    Возвращает результат в виде JSON-строки.
+    :param data: Список транзакций в виде словарей
+    :return: JSON-строка с найденными транзакциями
+    """
     try:
+        df = pd.DataFrame(data)
         pattern = r"\+7\s\d{3}\s\d{3}-\d{2}-\d{2}"
-        mask = data["Описание"].fillna("").apply(lambda text: bool(re.search(pattern, text)))
-        results = data[mask].copy()
+        mask = df["Описание"].fillna("").apply(lambda text: bool(re.search(pattern, text)))
+        return format_search_results(df, mask)
 
-        # Преобразуем все datetime-столбцы в строки
-        for col in results.columns:
-            if pd.api.types.is_datetime64_any_dtype(results[col]):
-                results[col] = results[col].dt.strftime("%Y-%m-%d")
-
-        return results.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Ошибка в phone_search: {e}")
-        return []
+        return json.dumps([])

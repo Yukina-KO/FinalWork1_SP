@@ -1,9 +1,9 @@
 import json
 
-from reports import spending_by_category, spending_by_weekday
-from services import analyze_cashback_categories, investment_bank, phone_search, simple_search
-from utils import load_excel_data
-from views import generate_main_page_data
+from src.reports import spending_by_category, spending_by_weekday
+from src.services import analyze_cashback_categories, investment_bank, phone_search, simple_search
+from src.utils import load_excel_data
+from src.views import generate_main_page_data
 
 if __name__ == "__main__":
     # Пример даты
@@ -18,9 +18,13 @@ if __name__ == "__main__":
     df = load_excel_data("data/operations.xlsx")
 
     # === Сервис 1: Повышенный кешбэк ===
-    cashback_result = analyze_cashback_categories(df, year=2021, month=12)
+    cashback_result = analyze_cashback_categories(
+        df.to_dict(orient="records"),
+        year=2021,
+        month=12
+    )
     print("\n Повышенный кешбэк:")
-    print(json.dumps(cashback_result, ensure_ascii=False, indent=2))
+    print(json.dumps(json.loads(cashback_result), ensure_ascii=False, indent=2))
 
     # === Сервис 2: Инвесткопилка ===
     transactions = (
@@ -35,12 +39,12 @@ if __name__ == "__main__":
     print(invest_result)
 
     # === Сервис 3: Простой поиск ===
-    search_result = simple_search(df, query="Магнит")
+    search_result = simple_search(df.to_dict(orient="records"), "Магнит")
     print("\n Поиск 'Магнит':")
-    print(json.dumps(search_result[:3], ensure_ascii=False, indent=2))  # первые 3
+    print(json.dumps(json.loads(search_result), ensure_ascii=False, indent=2))
 
     # === Сервис 4: Поиск по телефонам ===
-    phone_result = phone_search(df)
+    phone_result = phone_search(df.to_dict(orient="records"))
     print("\n Телефоны:")
     print(json.dumps(phone_result, ensure_ascii=False, indent=2))
 

@@ -8,9 +8,14 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def save_report(filename: Optional[str] = None) -> Callable[[Callable], Callable]:
-    def decorator(func: Callable) -> Callable[..., pd.DataFrame]:
+def save_report(filename: Optional[str] = None) -> Callable[[Callable], Callable[..., pd.DataFrame]]:
+    """
+    Декоратор для сохранения результата функции-отчета в JSON-файл.
+    :param filename: Имя выходного файла (опционально)
+    :return: Обёртка, сохраняющая результат вызова функции в файл
+    """
 
+    def decorator(func: Callable) -> Callable[..., pd.DataFrame]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> pd.DataFrame:
             result = func(*args, **kwargs)
@@ -29,13 +34,20 @@ def save_report(filename: Optional[str] = None) -> Callable[[Callable], Callable
 
 
 def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
+    """
+    Формирует отчет по тратам за указанную категорию за последние три месяца.
+    :param transactions: DataFrame с транзакциями
+    :param category: Название категории
+    :param date: Дата отсчета (по умолчанию текущая)
+    :return: Отфильтрованный DataFrame по категории и дате
+    """
     try:
         end_date = pd.to_datetime(date or datetime.now())
         start_date = end_date - pd.DateOffset(months=3)
 
         filtered = transactions[
-            (transactions["Дата операция"] >= start_date)
-            & (transactions["Дата операция"] <= end_date)
+            (transactions["Дата операции"] >= start_date)
+            & (transactions["Дата операции"] <= end_date)
             & (transactions["Категория"] == category)
         ]
 
@@ -47,6 +59,12 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
 
 
 def spending_by_weekday(transactions: pd.DataFrame, date: Optional[str] = None) -> pd.DataFrame:
+    """
+    Возвращает средние траты по дням недели за последние три месяца от указанной даты.
+    :param transactions: DataFrame с транзакциями
+    :param date: Дата отсчета (по умолчанию текущая)
+    :return: DataFrame со средними тратами по дням недели
+    """
     try:
         end_date = pd.to_datetime(date or datetime.now())
         start_date = end_date - pd.DateOffset(months=3)
@@ -55,7 +73,6 @@ def spending_by_weekday(transactions: pd.DataFrame, date: Optional[str] = None) 
             (transactions["Дата операции"] >= start_date) & (transactions["Дата операции"] <= end_date)
         ]
 
-        # Группировка по дню недели
         result = (
             filtered.groupby(filtered["Дата операции"].dt.day_name())["Сумма платежа"]
             .mean()
